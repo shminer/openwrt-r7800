@@ -38,7 +38,7 @@ Signed-off-by: Manikanta Pubbisetty <mpubbise@codeaurora.org>
 
 --- a/include/net/cfg80211.h
 +++ b/include/net/cfg80211.h
-@@ -3457,7 +3457,8 @@ struct cfg80211_ops {
+@@ -3518,7 +3518,8 @@ struct cfg80211_ops {
   *	on wiphy_new(), but can be changed by the driver if it has a good
   *	reason to override the default
   * @WIPHY_FLAG_4ADDR_AP: supports 4addr mode even on AP (with a single station
@@ -50,7 +50,7 @@ Signed-off-by: Manikanta Pubbisetty <mpubbise@codeaurora.org>
   *	control port protocol ethertype. The device also honours the
 --- a/net/mac80211/util.c
 +++ b/net/mac80211/util.c
-@@ -3626,7 +3626,9 @@ int ieee80211_check_combinations(struct
+@@ -3667,7 +3667,9 @@ int ieee80211_check_combinations(struct
  	}
  
  	/* Always allow software iftypes */
@@ -63,7 +63,7 @@ Signed-off-by: Manikanta Pubbisetty <mpubbise@codeaurora.org>
  		return 0;
 --- a/net/wireless/core.c
 +++ b/net/wireless/core.c
-@@ -1351,8 +1351,13 @@ static int cfg80211_netdev_notifier_call
+@@ -1362,8 +1362,13 @@ static int cfg80211_netdev_notifier_call
  		}
  		break;
  	case NETDEV_PRE_UP:
@@ -81,9 +81,9 @@ Signed-off-by: Manikanta Pubbisetty <mpubbise@codeaurora.org>
  		break;
 --- a/net/wireless/nl80211.c
 +++ b/net/wireless/nl80211.c
-@@ -3194,8 +3194,7 @@ static int nl80211_new_interface(struct
- 			return -EINVAL;
- 	}
+@@ -3233,8 +3233,7 @@ static int nl80211_new_interface(struct
+ 	if (info->attrs[NL80211_ATTR_IFTYPE])
+ 		type = nla_get_u32(info->attrs[NL80211_ATTR_IFTYPE]);
  
 -	if (!rdev->ops->add_virtual_intf ||
 -	    !(rdev->wiphy.interface_modes & (1 << type)))
@@ -91,7 +91,7 @@ Signed-off-by: Manikanta Pubbisetty <mpubbise@codeaurora.org>
  		return -EOPNOTSUPP;
  
  	if ((type == NL80211_IFTYPE_P2P_DEVICE || type == NL80211_IFTYPE_NAN ||
-@@ -3214,6 +3213,13 @@ static int nl80211_new_interface(struct
+@@ -3253,6 +3252,13 @@ static int nl80211_new_interface(struct
  			return err;
  	}
  

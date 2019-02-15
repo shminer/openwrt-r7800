@@ -19,7 +19,7 @@ Signed-off-by: Johannes Berg <johannes.berg@intel.com>
 
 --- a/include/net/cfg80211.h
 +++ b/include/net/cfg80211.h
-@@ -988,6 +988,7 @@ enum station_parameters_apply_mask {
+@@ -1001,6 +1001,7 @@ enum station_parameters_apply_mask {
   * @support_p2p_ps: information if station supports P2P PS mechanism
   * @he_capa: HE capabilities of station
   * @he_capa_len: the length of the HE capabilities
@@ -27,7 +27,7 @@ Signed-off-by: Johannes Berg <johannes.berg@intel.com>
   */
  struct station_parameters {
  	const u8 *supported_rates;
-@@ -1017,6 +1018,7 @@ struct station_parameters {
+@@ -1030,6 +1031,7 @@ struct station_parameters {
  	int support_p2p_ps;
  	const struct ieee80211_he_cap_elem *he_capa;
  	u8 he_capa_len;
@@ -35,7 +35,7 @@ Signed-off-by: Johannes Berg <johannes.berg@intel.com>
  };
  
  /**
-@@ -1284,6 +1286,8 @@ struct cfg80211_tid_stats {
+@@ -1297,6 +1299,8 @@ struct cfg80211_tid_stats {
   * @rx_beacon_signal_avg: signal strength average (in dBm) for beacons received
   *	from this peer
   * @rx_duration: aggregate PPDU duration(usecs) for all the frames from a peer
@@ -44,7 +44,7 @@ Signed-off-by: Johannes Berg <johannes.berg@intel.com>
   * @pertid: per-TID statistics, see &struct cfg80211_tid_stats, using the last
   *	(IEEE80211_NUM_TIDS) index for MSDUs not encapsulated in QoS-MPDUs.
   *	Note that this doesn't use the @filled bit, but is used if non-NULL.
-@@ -1330,12 +1334,15 @@ struct station_info {
+@@ -1347,8 +1351,9 @@ struct station_info {
  
  	u32 expected_throughput;
  
@@ -55,13 +55,16 @@ Signed-off-by: Johannes Berg <johannes.berg@intel.com>
  	u8 rx_beacon_signal_avg;
  	struct cfg80211_tid_stats *pertid;
  	s8 ack_signal;
- 	s8 avg_ack_signal;
+@@ -1356,6 +1361,8 @@ struct station_info {
+ 
+ 	u32 rx_mpdu_count;
+ 	u32 fcs_err_count;
 +
 +	u16 airtime_weight;
  };
  
  #if IS_ENABLED(CPTCFG_CFG80211)
-@@ -2361,6 +2368,8 @@ enum wiphy_params_flags {
+@@ -2381,6 +2388,8 @@ enum wiphy_params_flags {
  	WIPHY_PARAM_TXQ_QUANTUM		= 1 << 8,
  };
  
@@ -72,9 +75,9 @@ Signed-off-by: Johannes Berg <johannes.berg@intel.com>
   *
 --- a/include/uapi/linux/nl80211.h
 +++ b/include/uapi/linux/nl80211.h
-@@ -2241,6 +2241,9 @@ enum nl80211_commands {
-  *	association request when used with NL80211_CMD_NEW_STATION). Can be set
-  *	only if %NL80211_STA_FLAG_WME is set.
+@@ -2254,6 +2254,9 @@ enum nl80211_commands {
+  * @NL80211_ATTR_FTM_RESPONDER_STATS: Nested attribute with FTM responder
+  *	statistics, see &enum nl80211_ftm_responder_stats.
   *
 + * @NL80211_ATTR_AIRTIME_WEIGHT: Station's weight when scheduled by the airtime
 + *	scheduler.
@@ -82,13 +85,11 @@ Signed-off-by: Johannes Berg <johannes.berg@intel.com>
   * @NUM_NL80211_ATTR: total number of nl80211_attrs available
   * @NL80211_ATTR_MAX: highest attribute number currently defined
   * @__NL80211_ATTR_AFTER_LAST: internal use
-@@ -2682,6 +2685,14 @@ enum nl80211_attrs {
+@@ -2699,6 +2702,12 @@ enum nl80211_attrs {
  
- 	NL80211_ATTR_HE_CAPABILITY,
+ 	NL80211_ATTR_FTM_RESPONDER_STATS,
  
 +	/* not backported yet */
-+	NL80211_ATTR_FTM_RESPONDER,
-+	NL80211_ATTR_FTM_RESPONDER_STATS,
 +	NL80211_ATTR_TIMEOUT,
 +	NL80211_ATTR_PEER_MEASUREMENTS,
 +
@@ -97,23 +98,21 @@ Signed-off-by: Johannes Berg <johannes.berg@intel.com>
  	/* add attributes here, update the policy in nl80211.c */
  
  	__NL80211_ATTR_AFTER_LAST,
-@@ -3052,6 +3063,9 @@ enum nl80211_sta_bss_param {
-  * @NL80211_STA_INFO_ACK_SIGNAL: signal strength of the last ACK frame(u8, dBm)
-  * @NL80211_STA_INFO_DATA_ACK_SIGNAL_AVG: avg signal strength of (data)
-  *	ACK frame (s8, dBm)
+@@ -3074,6 +3083,9 @@ enum nl80211_sta_bss_param {
+  *	with an FCS error (u32, from this station). This count may not include
+  *	some packets with an FCS error due to TA corruption. Hence this counter
+  *	might not be fully accurate.
 + * @NL80211_STA_INFO_TX_DURATION: aggregate PPDU duration for all frames
 + *	sent to the station (u64, usec)
 + * @NL80211_STA_INFO_AIRTIME_WEIGHT: current airtime weight for station (u16)
   * @__NL80211_STA_INFO_AFTER_LAST: internal
   * @NL80211_STA_INFO_MAX: highest possible station info attribute
   */
-@@ -3093,6 +3107,14 @@ enum nl80211_sta_info {
- 	NL80211_STA_INFO_ACK_SIGNAL,
- 	NL80211_STA_INFO_DATA_ACK_SIGNAL_AVG,
+@@ -3117,6 +3129,12 @@ enum nl80211_sta_info {
+ 	NL80211_STA_INFO_RX_MPDUS,
+ 	NL80211_STA_INFO_FCS_ERROR_COUNT,
  
 +	/* not backported yet */
-+	NL80211_STA_INFO_RX_MPDUS,
-+	NL80211_STA_INFO_FCS_ERROR_COUNT,
 +	NL80211_STA_INFO_CONNECTED_TO_GATE,
 +
 +	NL80211_STA_INFO_TX_DURATION,
@@ -122,9 +121,9 @@ Signed-off-by: Johannes Berg <johannes.berg@intel.com>
  	/* keep last */
  	__NL80211_STA_INFO_AFTER_LAST,
  	NL80211_STA_INFO_MAX = __NL80211_STA_INFO_AFTER_LAST - 1
-@@ -5224,6 +5246,10 @@ enum nl80211_feature_flags {
-  *	except for supported rates from the probe request content if requested
-  *	by the %NL80211_SCAN_FLAG_MIN_PREQ_CONTENT flag.
+@@ -5258,6 +5276,10 @@ enum nl80211_feature_flags {
+  *      if this flag is not set. Ignoring this can leak clear text packets and/or
+  *      freeze the connection.
   *
 + * @NL80211_EXT_FEATURE_AIRTIME_FAIRNESS: Driver supports getting airtime
 + *	fairness for transmitted packets and has enabled airtime fairness
@@ -133,14 +132,10 @@ Signed-off-by: Johannes Berg <johannes.berg@intel.com>
   * @NUM_NL80211_EXT_FEATURES: number of extended features.
   * @MAX_NL80211_EXT_FEATURES: highest extended feature index.
   */
-@@ -5260,6 +5286,12 @@ enum nl80211_ext_feature_index {
- 	NL80211_EXT_FEATURE_SCAN_RANDOM_SN,
- 	NL80211_EXT_FEATURE_SCAN_MIN_PREQ_CONTENT,
+@@ -5298,6 +5320,8 @@ enum nl80211_ext_feature_index {
+ 	NL80211_EXT_FEATURE_CAN_REPLACE_PTK0,
+ 	NL80211_EXT_FEATURE_ENABLE_FTM_RESPONDER,
  
-+	/* --- not backported yet --- */
-+	NL80211_EXT_FEATURE_CAN_REPLACE_PTK0,
-+	NL80211_EXT_FEATURE_ENABLE_FTM_RESPONDER,
-+
 +	NL80211_EXT_FEATURE_AIRTIME_FAIRNESS,
 +
  	/* add new features before the definition below */
@@ -148,15 +143,15 @@ Signed-off-by: Johannes Berg <johannes.berg@intel.com>
  	MAX_NL80211_EXT_FEATURES = NUM_NL80211_EXT_FEATURES - 1
 --- a/net/wireless/nl80211.c
 +++ b/net/wireless/nl80211.c
-@@ -430,6 +430,7 @@ static const struct nla_policy nl80211_p
- 	[NL80211_ATTR_TXQ_QUANTUM] = { .type = NLA_U32 },
- 	[NL80211_ATTR_HE_CAPABILITY] = { .type = NLA_BINARY,
- 					 .len = NL80211_HE_MAX_CAPABILITY_LEN },
+@@ -497,6 +497,7 @@ static const struct nla_policy nl80211_p
+ 		.type = NLA_NESTED,
+ 		.validation_data = nl80211_ftm_responder_policy,
+ 	},
 +	[NL80211_ATTR_AIRTIME_WEIGHT] = NLA_POLICY_MIN(NLA_U16, 1),
  };
  
  /* policy for the key attributes */
-@@ -4658,6 +4659,11 @@ static int nl80211_send_station(struct s
+@@ -4694,6 +4695,11 @@ static int nl80211_send_station(struct s
  	PUT_SINFO(PLID, plid, u16);
  	PUT_SINFO(PLINK_STATE, plink_state, u8);
  	PUT_SINFO_U64(RX_DURATION, rx_duration);
@@ -168,7 +163,7 @@ Signed-off-by: Johannes Berg <johannes.berg@intel.com>
  
  	switch (rdev->wiphy.signal_type) {
  	case CFG80211_SIGNAL_TYPE_MBM:
-@@ -5294,6 +5300,15 @@ static int nl80211_set_station(struct sk
+@@ -5312,6 +5318,15 @@ static int nl80211_set_station(struct sk
  			nla_get_u8(info->attrs[NL80211_ATTR_OPMODE_NOTIF]);
  	}
  
@@ -184,9 +179,9 @@ Signed-off-by: Johannes Berg <johannes.berg@intel.com>
  	/* Include parameters for TDLS peer (will check later) */
  	err = nl80211_set_station_tdls(info, &params);
  	if (err)
-@@ -5432,6 +5447,15 @@ static int nl80211_new_station(struct sk
- 			return -EINVAL;
- 	}
+@@ -5440,6 +5455,15 @@ static int nl80211_new_station(struct sk
+ 		params.plink_action =
+ 			nla_get_u8(info->attrs[NL80211_ATTR_STA_PLINK_ACTION]);
  
 +	if (info->attrs[NL80211_ATTR_AIRTIME_WEIGHT])
 +		params.airtime_weight =

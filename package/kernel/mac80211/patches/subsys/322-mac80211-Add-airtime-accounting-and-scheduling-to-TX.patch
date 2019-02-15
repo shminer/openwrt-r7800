@@ -36,25 +36,25 @@ Signed-off-by: Johannes Berg <johannes.berg@intel.com>
 
 --- a/include/net/mac80211.h
 +++ b/include/net/mac80211.h
-@@ -2304,6 +2304,9 @@ enum ieee80211_hw_flags {
-  *	supported by HW.
-  * @max_nan_de_entries: maximum number of NAN DE functions supported by the
-  *	device.
+@@ -2361,6 +2361,9 @@ enum ieee80211_hw_flags {
+  * @tx_sk_pacing_shift: Pacing shift to set on TCP sockets when frames from
+  *	them are encountered. The default should typically not be changed,
+  *	unless the driver has good reasons for needing more buffers.
 + *
 + * @weight_multipler: Driver specific airtime weight multiplier used while
 + *	refilling deficit of each TXQ.
   */
  struct ieee80211_hw {
  	struct ieee80211_conf conf;
-@@ -2339,6 +2342,7 @@ struct ieee80211_hw {
- 	u8 n_cipher_schemes;
+@@ -2397,6 +2400,7 @@ struct ieee80211_hw {
  	const struct ieee80211_cipher_scheme *cipher_schemes;
  	u8 max_nan_de_entries;
+ 	u8 tx_sk_pacing_shift;
 +	u8 weight_multiplier;
  };
  
  static inline bool _ieee80211_hw_check(struct ieee80211_hw *hw,
-@@ -5299,6 +5303,34 @@ void ieee80211_sta_eosp(struct ieee80211
+@@ -5397,6 +5401,34 @@ void ieee80211_sta_eosp(struct ieee80211
  void ieee80211_send_eosp_nullfunc(struct ieee80211_sta *pubsta, int tid);
  
  /**
@@ -89,7 +89,7 @@ Signed-off-by: Johannes Berg <johannes.berg@intel.com>
   * ieee80211_iter_keys - iterate keys programmed into the device
   * @hw: pointer obtained from ieee80211_alloc_hw()
   * @vif: virtual interface to iterate, may be %NULL for all
-@@ -6042,6 +6074,33 @@ void ieee80211_txq_schedule_end(struct i
+@@ -6155,6 +6187,33 @@ void ieee80211_txq_schedule_end(struct i
  	__releases(txq_lock);
  
  /**
@@ -125,7 +125,7 @@ Signed-off-by: Johannes Berg <johannes.berg@intel.com>
   * The values are not guaranteed to be coherent with regard to each other, i.e.
 --- a/net/mac80211/cfg.c
 +++ b/net/mac80211/cfg.c
-@@ -1434,6 +1434,9 @@ static int sta_apply_parameters(struct i
+@@ -1450,6 +1450,9 @@ static int sta_apply_parameters(struct i
  	if (ieee80211_vif_is_mesh(&sdata->vif))
  		sta_apply_mesh_params(local, sta, params);
  
@@ -137,7 +137,7 @@ Signed-off-by: Johannes Berg <johannes.berg@intel.com>
  	    set & BIT(NL80211_STA_FLAG_ASSOCIATED)) {
 --- a/net/mac80211/debugfs.c
 +++ b/net/mac80211/debugfs.c
-@@ -380,6 +380,9 @@ void debugfs_hw_add(struct ieee80211_loc
+@@ -384,6 +384,9 @@ void debugfs_hw_add(struct ieee80211_loc
  	if (local->ops->wake_tx_queue)
  		DEBUGFS_ADD_MODE(aqm, 0600);
  
@@ -149,7 +149,7 @@ Signed-off-by: Johannes Berg <johannes.berg@intel.com>
  	/* if the dir failed, don't put all the other things into the root! */
 --- a/net/mac80211/debugfs_sta.c
 +++ b/net/mac80211/debugfs_sta.c
-@@ -178,9 +178,9 @@ static ssize_t sta_aqm_read(struct file
+@@ -181,9 +181,9 @@ static ssize_t sta_aqm_read(struct file
  			       txqi->tin.tx_bytes,
  			       txqi->tin.tx_packets,
  			       txqi->flags,
@@ -162,7 +162,7 @@ Signed-off-by: Johannes Berg <johannes.berg@intel.com>
  	}
  
  	rcu_read_unlock();
-@@ -192,6 +192,64 @@ static ssize_t sta_aqm_read(struct file
+@@ -195,6 +195,64 @@ static ssize_t sta_aqm_read(struct file
  }
  STA_OPS(aqm);
  
@@ -227,7 +227,7 @@ Signed-off-by: Johannes Berg <johannes.berg@intel.com>
  static ssize_t sta_agg_status_read(struct file *file, char __user *userbuf,
  					size_t count, loff_t *ppos)
  {
-@@ -546,6 +604,10 @@ void ieee80211_sta_debugfs_add(struct st
+@@ -906,6 +964,10 @@ void ieee80211_sta_debugfs_add(struct st
  	if (local->ops->wake_tx_queue)
  		DEBUGFS_ADD(aqm);
  
@@ -240,7 +240,7 @@ Signed-off-by: Johannes Berg <johannes.berg@intel.com>
  				   sta->debugfs_dir,
 --- a/net/mac80211/ieee80211_i.h
 +++ b/net/mac80211/ieee80211_i.h
-@@ -1136,6 +1136,8 @@ struct ieee80211_local {
+@@ -1137,6 +1137,8 @@ struct ieee80211_local {
  	struct list_head active_txqs[IEEE80211_NUM_ACS];
  	u16 schedule_round[IEEE80211_NUM_ACS];
  
@@ -251,7 +251,7 @@ Signed-off-by: Johannes Berg <johannes.berg@intel.com>
  	/*
 --- a/net/mac80211/main.c
 +++ b/net/mac80211/main.c
-@@ -656,6 +656,7 @@ struct ieee80211_hw *ieee80211_alloc_hw_
+@@ -669,6 +669,7 @@ struct ieee80211_hw *ieee80211_alloc_hw_
  		INIT_LIST_HEAD(&local->active_txqs[i]);
  		spin_lock_init(&local->active_txq_lock[i]);
  	}
@@ -259,7 +259,7 @@ Signed-off-by: Johannes Berg <johannes.berg@intel.com>
  
  	INIT_LIST_HEAD(&local->chanctx_list);
  	mutex_init(&local->chanctx_mtx);
-@@ -1142,6 +1143,9 @@ int ieee80211_register_hw(struct ieee802
+@@ -1155,6 +1156,9 @@ int ieee80211_register_hw(struct ieee802
  	if (!local->hw.max_nan_de_entries)
  		local->hw.max_nan_de_entries = IEEE80211_MAX_NAN_INSTANCE_ID;
  
@@ -279,9 +279,9 @@ Signed-off-by: Johannes Berg <johannes.berg@intel.com>
  	struct ps_data *ps;
  
  	if (test_sta_flag(sta, WLAN_STA_PS_STA) ||
-@@ -115,9 +114,7 @@ static void __cleanup_single_sta(struct
- 		for (i = 0; i < ARRAY_SIZE(sta->sta.txq); i++) {
- 			struct txq_info *txqi = to_txq_info(sta->sta.txq[i]);
+@@ -120,9 +119,7 @@ static void __cleanup_single_sta(struct
+ 
+ 			txqi = to_txq_info(sta->sta.txq[i]);
  
 -			spin_lock_bh(&fq->lock);
  			ieee80211_txq_purge(local, txqi);
@@ -289,7 +289,7 @@ Signed-off-by: Johannes Berg <johannes.berg@intel.com>
  		}
  	}
  
-@@ -381,9 +378,12 @@ struct sta_info *sta_info_alloc(struct i
+@@ -387,9 +384,12 @@ struct sta_info *sta_info_alloc(struct i
  	if (sta_prepare_rate_control(local, sta, gfp))
  		goto free_txq;
  
@@ -302,7 +302,7 @@ Signed-off-by: Johannes Berg <johannes.berg@intel.com>
  	}
  
  	for (i = 0; i < IEEE80211_NUM_TIDS; i++)
-@@ -1821,6 +1821,27 @@ void ieee80211_sta_set_buffered(struct i
+@@ -1826,6 +1826,27 @@ void ieee80211_sta_set_buffered(struct i
  }
  EXPORT_SYMBOL(ieee80211_sta_set_buffered);
  
@@ -330,7 +330,7 @@ Signed-off-by: Johannes Berg <johannes.berg@intel.com>
  int sta_info_move_state(struct sta_info *sta,
  			enum ieee80211_sta_state new_state)
  {
-@@ -2183,6 +2204,23 @@ void sta_set_sinfo(struct sta_info *sta,
+@@ -2188,6 +2209,23 @@ void sta_set_sinfo(struct sta_info *sta,
  		sinfo->filled |= BIT_ULL(NL80211_STA_INFO_TX_FAILED);
  	}
  
@@ -400,7 +400,7 @@ Signed-off-by: Johannes Berg <johannes.berg@intel.com>
  				if (sta->status_stats.lost_packets)
 --- a/net/mac80211/tx.c
 +++ b/net/mac80211/tx.c
-@@ -1463,8 +1463,11 @@ void ieee80211_txq_purge(struct ieee8021
+@@ -1488,8 +1488,11 @@ void ieee80211_txq_purge(struct ieee8021
  	struct fq *fq = &local->fq;
  	struct fq_tin *tin = &txqi->tin;
  
@@ -412,7 +412,7 @@ Signed-off-by: Johannes Berg <johannes.berg@intel.com>
  	spin_lock_bh(&local->active_txq_lock[txqi->txq.ac]);
  	list_del_init(&txqi->schedule_order);
  	spin_unlock_bh(&local->active_txq_lock[txqi->txq.ac]);
-@@ -3613,11 +3616,28 @@ struct ieee80211_txq *ieee80211_next_txq
+@@ -3649,11 +3652,28 @@ struct ieee80211_txq *ieee80211_next_txq
  
  	lockdep_assert_held(&local->active_txq_lock[ac]);
  
@@ -442,7 +442,7 @@ Signed-off-by: Johannes Berg <johannes.berg@intel.com>
  		return NULL;
  
  	list_del_init(&txqi->schedule_order);
-@@ -3635,12 +3655,74 @@ void ieee80211_return_txq(struct ieee802
+@@ -3671,12 +3691,74 @@ void ieee80211_return_txq(struct ieee802
  	lockdep_assert_held(&local->active_txq_lock[txq->ac]);
  
  	if (list_empty(&txqi->schedule_order) &&
