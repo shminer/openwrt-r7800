@@ -10,7 +10,7 @@ Signed-off-by: Felix Fietkau <nbd@nbd.name>
 
 --- a/net/mac80211/tx.c
 +++ b/net/mac80211/tx.c
-@@ -3543,6 +3543,7 @@ struct sk_buff *ieee80211_tx_dequeue(str
+@@ -3546,6 +3546,7 @@ struct sk_buff *ieee80211_tx_dequeue(str
  	ieee80211_tx_result r;
  	struct ieee80211_vif *vif = txq->vif;
  
@@ -18,7 +18,7 @@ Signed-off-by: Felix Fietkau <nbd@nbd.name>
  	spin_lock_bh(&fq->lock);
  
  	if (test_bit(IEEE80211_TXQ_STOP, &txqi->flags) ||
-@@ -3559,11 +3560,12 @@ struct sk_buff *ieee80211_tx_dequeue(str
+@@ -3562,11 +3563,12 @@ struct sk_buff *ieee80211_tx_dequeue(str
  	if (skb)
  		goto out;
  
@@ -32,7 +32,7 @@ Signed-off-by: Felix Fietkau <nbd@nbd.name>
  	hdr = (struct ieee80211_hdr *)skb->data;
  	info = IEEE80211_SKB_CB(skb);
  
-@@ -3609,8 +3611,11 @@ begin:
+@@ -3612,8 +3614,11 @@ begin:
  
  		skb = __skb_dequeue(&tx.skbs);
  
@@ -44,8 +44,8 @@ Signed-off-by: Felix Fietkau <nbd@nbd.name>
 +		}
  	}
  
- 	if (skb && skb_has_frag_list(skb) &&
-@@ -3649,6 +3654,7 @@ begin:
+ 	if (skb_has_frag_list(skb) &&
+@@ -3652,6 +3657,7 @@ begin:
  	}
  
  	IEEE80211_SKB_CB(skb)->control.vif = vif;

@@ -103,7 +103,7 @@ Signed-off-by: Felix Fietkau <nbd@nbd.name>
  	int orig_truesize;
  	__be16 len;
  	void *data;
-@@ -3253,6 +3255,8 @@ static bool ieee80211_amsdu_aggregate(st
+@@ -3256,6 +3258,8 @@ static bool ieee80211_amsdu_aggregate(st
  		max_amsdu_len = min_t(int, max_amsdu_len,
  				      sta->sta.max_tid_amsdu_len[tid]);
  
@@ -112,7 +112,7 @@ Signed-off-by: Felix Fietkau <nbd@nbd.name>
  	spin_lock_bh(&fq->lock);
  
  	/* TODO: Ideally aggregation should be done on dequeue to remain
-@@ -3260,7 +3264,8 @@ static bool ieee80211_amsdu_aggregate(st
+@@ -3263,7 +3267,8 @@ static bool ieee80211_amsdu_aggregate(st
  	 */
  
  	tin = &txqi->tin;
@@ -120,5 +120,5 @@ Signed-off-by: Felix Fietkau <nbd@nbd.name>
 +	flow = fq_flow_classify(fq, tin, flow_idx, skb,
 +				fq_flow_get_default_func);
  	head = skb_peek_tail(&flow->queue);
- 	if (!head)
+ 	if (!head || skb_is_gso(head))
  		goto unlock;
