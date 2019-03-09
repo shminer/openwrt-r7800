@@ -19,8 +19,7 @@ preinit_set_mac_address() {
 		lan14_mac=$(mtd_get_mac_binary_ubi Factory 4102)
 		;;
 	meraki,mr33)
-		mac_lan=$(get_mac_binary "/sys/bus/i2c/devices/0-0050/eeprom" 102)
-		[ -n "$mac_lan" ] && ip link set dev eth0 address "$mac_lan"
+		lan_mac=$(get_mac_binary "/sys/bus/i2c/devices/0-0050/eeprom" 102)
 		;;
 	zyxel,nbg6617)
 		base_mac=$(cat /sys/class/net/eth0/address)
