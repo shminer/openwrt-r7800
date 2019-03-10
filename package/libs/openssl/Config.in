@@ -246,6 +246,7 @@ comment "Engine/Hardware Support"
 
 config OPENSSL_ENGINE
 	bool "Enable engine support"
+	default y
 	help
 		This enables alternative cryptography implementations,
 		most commonly for interfacing with external crypto devices,
@@ -255,6 +256,7 @@ config OPENSSL_ENGINE
 
 config OPENSSL_ENGINE_BUILTIN
 	bool "Build chosen engines into libcrypto"
+	default y
 	depends on OPENSSL_ENGINE
 	help
 		This builds all chosen engines into libcrypto.so, instead of building
@@ -279,6 +281,7 @@ config OPENSSL_ENGINE_CRYPTO
 
 config OPENSSL_ENGINE_BUILTIN_DEVCRYPTO
 	bool
+	default y
 	prompt "Acceleration support through /dev/crypto"
 	depends on OPENSSL_ENGINE_BUILTIN
 	select PACKAGE_libopenssl-conf
