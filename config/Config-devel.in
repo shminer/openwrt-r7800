@@ -116,7 +116,7 @@ menuconfig DEVEL
 
 	config EXTRA_OPTIMIZATION
 		string "Additional compiler options" if DEVEL
-		default "-fno-caller-saves -fno-plt" if !CONFIG_EXTERNAL_TOOLCHAIN && !arc
-		default "-fno-caller-saves"
+		default "-O2 -pipe -mcpu=cortex-a15 -mfpu=neon-vfpv4 -fno-caller-saves -fno-plt" if !CONFIG_EXTERNAL_TOOLCHAIN && !arc
+		default "-O2 -pipe -mcpu=cortex-a15 -mfpu=neon-vfpv4 -fno-caller-saves -fno-plt"
 		help
 		  Extra target-independent optimizations to use when building for the target.
