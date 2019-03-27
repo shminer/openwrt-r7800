@@ -1,6 +1,6 @@
 --- a/local-symbols
 +++ b/local-symbols
-@@ -400,43 +400,6 @@ USB_SIERRA_NET=
+@@ -401,43 +401,6 @@ USB_SIERRA_NET=
  USB_VL600=
  USB_NET_CH9200=
  USB_NET_AQC111=
@@ -192,7 +192,7 @@
  	select BRCMUTIL
 --- a/Kconfig.local
 +++ b/Kconfig.local
-@@ -1204,117 +1204,6 @@ config BACKPORTED_USB_NET_CH9200
+@@ -1207,117 +1207,6 @@ config BACKPORTED_USB_NET_CH9200
  config BACKPORTED_USB_NET_AQC111
  	tristate
  	default USB_NET_AQC111
